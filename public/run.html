@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Run Quiz</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <h1 id="quizTitle"></h1>
+  <div id="questions">
+  </div>
+  <button onclick="submitQuiz()">Submit</button>
+  <div id="results" style="display: none;">
+    <h2>Your Answers</h2>
+    <div id="answers"></div>
+    <p>Time taken: <span id="timeTaken"></span> seconds</p>
+  </div>
+  <script>
+    const quizId = new URLSearchParams(window.location.search).get('id');
+    let startTime = Date.now();
+
+    fetch(`/api/questionnaires/${quizId}`)
+      .then(response => response.json())
+      .then(data => {
+        document.getElementById('quizTitle').textContent = data.name;
+        const questions = JSON.parse(data.questions);
+        const questionsDiv = document.getElementById('questions');
+        questions.forEach((q, i) => {
+          const questionDiv = document.createElement('div');
+          questionDiv.className = 'question';
+          if (q.type === 'text') {
+            questionDiv.innerHTML = `
+              <p>${i + 1}. ${q.text}</p>
+              <input type="text" class="answer" data-index="${i}">
+            `;
+          } else if (q.type === 'single') {
+            questionDiv.innerHTML = `
+              <p>${i + 1}. ${q.text}</p>
+              ${q.choices.map((choice, j) => `
+                <label><input type="radio" name="q${i}" class="answer" value="${choice}" data-index="${i}"> ${choice}</label><br>
+              `).join('')}
+            `;
+          } else if (q.type === 'multiple') {
+            questionDiv.innerHTML = `
+              <p>${i + 1}. ${q.text}</p>
+              ${q.choices.map((choice, j) => `
+                <label><input type="checkbox" class="answer" value="${choice}" data-index="${i}"> ${choice}</label><br>
+              ` ).join('')}
+            `;
+          }
+          questionsDiv.appendChild(questionDiv);
+        });
+      });
+
+    function submitQuiz() {
+      const timeTaken = Math.floor((Date.now() - startTime) / 1000);
+      const answers = [];
+      document.querySelectorAll('.question').forEach((q, i) => {
+        const inputs = q.querySelectorAll('.answer');
+        if (inputs[0].type === 'text') {
+          answers[i] = inputs[0].value;
+        } else if (inputs[0].type === 'radio') {
+          const selected = Array.from(inputs).find(input => input.checked);
+          answers[i] = selected ? selected.value : null;
+        } else if (inputs[0].type === 'checkbox') {
+          answers[i] = Array.from(inputs).filter(input => input.checked).map(input => input.value);
+        }
+      });
+
+      fetch('/api/responses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ questionnaireId: quizId, answers, timeTaken })
+      }).then(() => {
+        document.getElementById('questions').style.display = 'none';
+        document.getElementById('results').style.display = 'block';
+        const answersDiv = document.getElementById('answers');
+        answers.forEach((answer, i) => {
+          answersDiv.innerHTML += `<p>Question ${i + 1}: ${JSON.stringify(answer)}</p>`;
+        });
+        document.getElementById('timeTaken').textContent = timeTaken;
+      });
+    }
+  </script>
+</body>
+</html>

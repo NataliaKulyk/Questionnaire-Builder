@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Questionnaire Catalog</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <h1>Quiz Catalog</h1>
+  <div id="catalog" class="catalog">
+  </div>
+  <div class="pagination">Pagination here</div>
+  <script src="script.js"></script>
+  <script>
+    fetch('/api/questionnaires')
+      .then(response => response.json())
+      .then(data => {
+        const catalog = document.getElementById('catalog');
+        data.forEach(quiz => {
+          const questions = JSON.parse(quiz.questions);
+          const card = document.createElement('div');
+          card.className = 'card';
+          card.innerHTML = `
+            <h3>${quiz.name}</h3>
+            <p>${quiz.description || 'No description'}</p>
+            <p>Questions: ${questions.length}</p>
+            <p>Completions: ${quiz.completions}</p>
+            <div class="actions">
+              <a href="create.html?id=${quiz.id}">Edit</a>
+              <a href="run.html?id=${quiz.id}">Run</a>
+              <button onclick="deleteQuiz(${quiz.id})">Delete</button>
+            </div>
+          `;
+          catalog.appendChild(card);
+        });
+      });
+
+    function deleteQuiz(id) {
+      if (confirm('Are you sure you want to delete this quiz?')) {
+        fetch(`/api/questionnaires/${id}`, { method: 'DELETE' })
+          .then(() => location.reload());
+      }
+    }
+  </script>
+</body>
+</html>

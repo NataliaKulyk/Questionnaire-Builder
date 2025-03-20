@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create Quiz</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <h1>Create Quiz</h1>
+  <div>
+    <label>Name: <input type="text" id="quizName"></label><br>
+    <label>Description: <textarea id="quizDescription"></textarea></label>
+  </div>
+  <div id="questions">
+  </div>
+  <button onclick="addQuestion()">Add question</button>
+  <button onclick="saveQuiz()">Save Quiz</button>
+  <script src="script.js"></script>
+  <script>
+    let questionCount = 0;
+    let quizId = new URLSearchParams(window.location.search).get('id');
+    if (quizId) {
+      fetch(`/api/questionnaires/${quizId}`)
+        .then(response => response.json())
+        .then(data => {
+          document.getElementById('quizName').value = data.name;
+          document.getElementById('quizDescription').value = data.description || '';
+          const questions = JSON.parse(data.questions);
+          questions.forEach(q => addQuestion(q));
+        });
+    }
+
+    function addQuestion(question = null) {
+      questionCount++;
+      const questionDiv = document.createElement('div');
+      questionDiv.className = 'question';
+      questionDiv.innerHTML = `
+        <label>${questionCount}. <input type="text" class="question-text" placeholder="Question" value="${question?.text || ''}"></label>
+        <select class="question-type">
+          <option value="text" ${question?.type === 'text' ? 'selected' : ''}>Text</option>
+          <option value="single" ${question?.type === 'single' ? 'selected' : ''}>Single choice</option>
+          <option value="multiple" ${question?.type === 'multiple' ? 'selected' : ''}>Multiple choices</option>
+        </select>
+        <button onclick="this.parentElement.remove(); questionCount--;">Remove</button>
+        <div class="choices" style="display: ${question?.type === 'text' ? 'none' : 'block'}">
+          <h4>Answers</h4>
+          <div class="choice-list">
+            ${question?.choices?.map((choice, i) => `
+              <div>
+                <label>${i + 1}. <input type="text" class="choice" value="${choice}"></label>
+                <button onclick="this.parentElement.remove()">Remove</button>
+              </div>
+            `).join('') || `
+              <div><label>1. <input type="text" class="choice"></label><button onclick="this.parentElement.remove()">Remove</button></div>
+              <div><label>2. <input type="text" class="choice"></label><button onclick="this.parentElement.remove()">Remove</button></div>
+            `}
+          </div>
+          <button onclick="addChoice(this)">Add choice</button>
+        </div>
+      `;
+      document.getElementById('questions').appendChild(questionDiv);
+      questionDiv.querySelector('.question-type').addEventListener('change', (e) => {
+        const choicesDiv = questionDiv.querySelector('.choices');
+        choicesDiv.style.display = e.target.value === 'text' ? 'none' : 'block';
+      });
+    }
+
+    function addChoice(btn) {
+      const choiceList = btn.previousElementSibling;
+      const choiceCount = choiceList.children.length + 1;
+      const choiceDiv = document.createElement('div');
+      choiceDiv.innerHTML = `
+        <label>${choiceCount}. <input type="text" class="choice"></label>
+        <button onclick="this.parentElement.remove()">Remove</button>
+      `;
+      choiceList.appendChild(choiceDiv);
+    }
+
+    function saveQuiz() {
+      const name = document.getElementById('quizName').value;
+      const description = document.getElementById('quizDescription').value;
+      const questions = Array.from(document.querySelectorAll('.question')).map(q => {
+        const type = q.querySelector('.question-type').value;
+        return {
+          text: q.querySelector('.question-text').value,
+          type,
+          choices: type !== 'text' ? Array.from(q.querySelectorAll('.choice')).map(c => c.value) : []
+        };
+      });
+
+      fetch('/api/questionnaires', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, description, questions })
+      }).then(() => window.location.href = 'index.html');
+    }
+  </script>
+</body>
+</html>

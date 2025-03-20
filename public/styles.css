@@ -1,0 +1,52 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+  }
+  
+  h1 {
+    font-size: 24px;
+  }
+  
+  .catalog {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+  }
+  
+  .card {
+    border: 1px solid #ccc;
+    padding: 10px;
+    width: 200px;
+  }
+  
+  .actions a, .actions button {
+    margin-right: 5px;
+    color: blue;
+    text-decoration: none;
+    cursor: pointer;
+  }
+  
+  .question {
+    margin: 10px 0;
+    padding: 10px;
+    border: 1px solid #ddd;
+  }
+  
+  .choices {
+    margin-left: 20px;
+  }
+  
+  button {
+    padding: 5px 10px;
+    margin: 5px;
+  }
+  
+  input, textarea, select {
+    margin: 5px;
+    padding: 5px;
+  }
+  
+  .pagination {
+    margin-top: 20px;
+    text-align: center;
+  }
